@@ -112,9 +112,10 @@ function collectOre(i, cx, cy) {
     burst(cx, cy, 50, o.shine, 10, 1.2, 0.2); shake(CFG.SHAKE_SELL);
   }
 }
-function loseCargo(frac, noHull) {
-  const n = Math.ceil(G.cargo.length * frac * (noHull ? 1 : hullMult()));
-  for (let i = 0; i < n; i++) G.cargo.splice(rint(0, G.cargo.length - 1), 1);
+function loseCargo(frac, noHull, src) {
+  const n = Math.ceil(G.cargo.length * frac * (noHull ? 1 : hullMult())), items = [];
+  for (let i = 0; i < n; i++) items.push(G.cargo.splice(rint(0, G.cargo.length - 1), 1)[0]);
+  if (src && n) emit('cargo-lost', { src, items });   // ad offer "get cargo back" listens to this
   return n;
 }
 function explode(x, y) {
@@ -132,7 +133,7 @@ function explode(x, y) {
   if (n) floatText('-' + n + ' CARGO', (x + 0.5) * TS, (y - G.camY) * TS, '#ff5a4a', 24 * U, 1.6);
 }
 function burn(x, y) {
-  const n = loseCargo(CFG.MAGMA_CARGO_LOSS), fl = Math.round(CFG.MAGMA_FUEL_LOSS * hullMult());
+  const n = loseCargo(CFG.MAGMA_CARGO_LOSS, false, 'magma'), fl = Math.round(CFG.MAGMA_FUEL_LOSS * hullMult());
   G.fuel = Math.max(0, G.fuel - fl);
   shake(CFG.SHAKE_EXPLOSION * 0.7); flash('#ff4a10', 0.6); sndExplosion();
   burst(x + 0.5, y + 0.5, 60, '#ff6a1a', 10, 1.0, 0.24); burst(x + 0.5, y + 0.5, 30, '#ffd24a', 7, 0.7, 0.16);
@@ -159,7 +160,7 @@ function updateRocks(dt) {
     if (r.warn > 0) { r.warn -= dt; if (Math.random() < dt * 30) burst(r.x + rnd(0.1, 0.9), r.y + 1, 1, '#998', 1.5, 0.5, 0.1); continue; }
     r.y += CFG.CAVE_FALL_SPEED * dt;
     if (Math.abs(d.x - r.x) < 0.5 && r.y >= d.y - 0.8 && r.y <= d.y + 0.5) {       // hit the drill
-      const n = loseCargo(CFG.CAVE_CARGO_LOSS);
+      const n = loseCargo(CFG.CAVE_CARGO_LOSS, false, 'cave');
       const fl = Math.round(CFG.CAVE_FUEL_LOSS * hullMult()); G.fuel = Math.max(0, G.fuel - fl);
       shake(CFG.SHAKE_ROCK); flash('#ff3a2a', 0.5); sndExplosion();
       burst(r.x + 0.5, d.y, 40, '#8a8a92', 9, 1.0, 0.24);

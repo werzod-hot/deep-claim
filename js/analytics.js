@@ -38,7 +38,11 @@ const GC = (() => {
   }
   const store = () => { try { localStorage.setItem(META_KEY, JSON.stringify(meta)); } catch (e) {} };
   store();
+  const adSeen = {};   // ad offers are counted once per session per placement
   onEvent((name, d) => {
+    if (name === 'ad-offer' && !adSeen[d.placement]) { adSeen[d.placement] = 1; GC.send('ad-offer-' + d.placement); }
+    if (name === 'ad-tap') GC.send('ad-tap-' + d.placement);
+    if (name === 'ad-done') GC.send('ad-done-' + d.placement);
     if (name === 'sell' && !meta.sold) { meta.sold = true; GC.send('first-sale'); store(); }
     if (name === 'upgrade') GC.send('upgrade-' + d.k + '-' + d.lv);
     if (name === 'record') for (const m of DEPTH_MARKS) if (d.depth >= m && meta.depth < m) { meta.depth = m; GC.send('depth-' + m); store(); }

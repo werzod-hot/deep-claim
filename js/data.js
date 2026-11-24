@@ -84,6 +84,11 @@ const CFG = {
   DAILY_PER_RECORD: 1.5,     // extra per m of the depth record
   DAILY_STREAK_MAX: 7,
 
+  // ---- rewarded-ad stubs (stage 4): no real ads yet, we only measure which offers get tapped ----
+  AD_STUB_SECONDS: 3,        // length of the fake ad screen
+  AD_OFFER_SECONDS: 7,       // an offer button disappears after this (refuel stays while the fuel is low)
+  AD_COOLDOWN: 60,           // seconds between shown offers (refuel when out of fuel ignores it)
+
   // ---- juice ----
   RECORD_STEP: 10,           // "NEW DEPTH RECORD" every N tiles of new depth
   DIG_PARTICLES_PER_SEC: 70,
