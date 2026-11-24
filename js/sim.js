@@ -1,12 +1,12 @@
 'use strict';
 // Game rules: shop, drill movement, ores, hazards, update step.
 /* ---------------- shop ---------------- */
-const UP_KEYS = ['speed', 'cargo', 'fuel'];
-const UP_NAMES = { speed: 'DRILL SPEED', cargo: 'CARGO HOLD', fuel: 'FUEL TANK' };
+const UP_KEYS = ['speed', 'cargo', 'fuel', 'hull'];
+const UP_NAMES = { speed: 'SPEED', cargo: 'CARGO', fuel: 'FUEL', hull: 'HULL' };
 function shopRects() {
   const ph = H * CFG.SHOP_PANEL_FRAC, py = H - ph, pad = 10 * U;
   const sell = { x: pad, y: py + pad, w: W - 2 * pad, h: ph * 0.34 };
-  const bw = (W - 4 * pad) / 3, by = sell.y + sell.h + pad, bh = H - by - pad * 1.6;
+  const bw = (W - (UP_KEYS.length + 1) * pad) / UP_KEYS.length, by = sell.y + sell.h + pad, bh = H - by - pad * 1.6;
   return { py, ph, sell, ups: UP_KEYS.map((k, i) => ({ k, x: pad + i * (bw + pad), y: by, w: bw, h: bh })) };
 }
 const inRect = (r, x, y) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
@@ -30,7 +30,8 @@ function sellCargo() {
     });
   });
   G.money += total; G.cargo = [];
-  emit('sell', { total, full });
+  G.sold = true;
+  emit('sell', { total, full, groups });
   shake(full ? CFG.SHAKE_SELL : CFG.SHAKE_SELL * 0.5);
   if (full) { flash('#ffe14a', 0.45); banner('FULL LOAD  +$' + total, '#ffe14a'); burst(d.x + 0.5, d.y + 0.3, 60, '#ffd84a', 10, 1.3, 0.24); }
 }
@@ -66,7 +67,7 @@ function tryStartMove() {
   if (!out && (ny >= 0 || d.ty >= 0)) {
     G.fuel = Math.max(0, G.fuel - (solid ? CFG.FUEL_PER_DIG : CFG.FUEL_PER_MOVE));
     if (G.fuel <= 0 && ny >= 0 && !G.outOfFuel) { G.outOfFuel = true; banner('OUT OF FUEL - CRAWLING UP', '#ff5a4a'); shake(8);
-      const n = loseCargo(CFG.OUT_OF_FUEL_CARGO_LOSS);
+      const n = loseCargo(CFG.OUT_OF_FUEL_CARGO_LOSS, true);
       if (n) floatText('-' + n + ' CARGO', (d.x + 0.5) * TS, (d.y - G.camY) * TS, '#ff5a4a', 24 * U, 1.6); }
   }
   d.move = { fx: d.tx, fy: d.ty, tx: nx, ty: ny, t: 0, dur, dig: solid, type: t };
@@ -81,6 +82,7 @@ function finishMove(m) {
     const t = m.type, cx = m.tx + 0.5, cy = m.ty + 0.5;
     if (t >= T_ORE) collectOre(t - T_ORE, cx, cy);
     else if (t === T_GAS) explode(m.tx, m.ty);
+    else if (t === T_MAGMA) burn(m.tx, m.ty);
     else shake(CFG.SHAKE_DIG);
     burst(cx, cy, 8, dirtColor(m.ty, 0.5), 4, 0.6, 0.18);
     if (m.fy <= m.ty) maybeCaveIn();
@@ -110,8 +112,8 @@ function collectOre(i, cx, cy) {
     burst(cx, cy, 50, o.shine, 10, 1.2, 0.2); shake(CFG.SHAKE_SELL);
   }
 }
-function loseCargo(frac) {
-  const n = Math.ceil(G.cargo.length * frac);
+function loseCargo(frac, noHull) {
+  const n = Math.ceil(G.cargo.length * frac * (noHull ? 1 : hullMult()));
   for (let i = 0; i < n; i++) G.cargo.splice(rint(0, G.cargo.length - 1), 1);
   return n;
 }
@@ -129,6 +131,14 @@ function explode(x, y) {
   banner('GAS POCKET!', '#ff8a2a');
   if (n) floatText('-' + n + ' CARGO', (x + 0.5) * TS, (y - G.camY) * TS, '#ff5a4a', 24 * U, 1.6);
 }
+function burn(x, y) {
+  const n = loseCargo(CFG.MAGMA_CARGO_LOSS), fl = Math.round(CFG.MAGMA_FUEL_LOSS * hullMult());
+  G.fuel = Math.max(0, G.fuel - fl);
+  shake(CFG.SHAKE_EXPLOSION * 0.7); flash('#ff4a10', 0.6); sndExplosion();
+  burst(x + 0.5, y + 0.5, 60, '#ff6a1a', 10, 1.0, 0.24); burst(x + 0.5, y + 0.5, 30, '#ffd24a', 7, 0.7, 0.16);
+  banner('MAGMA!', '#ff6a1a');
+  floatText((n ? '-' + n + ' CARGO  ' : '') + '-' + fl + ' FUEL', (x + 0.5) * TS, (y - G.camY) * TS, '#ff5a4a', 20 * U, 1.6);
+}
 function maybeCaveIn() {
   const d = G.drill, depth = d.ty + 1;
   if (depth < CFG.CAVE_FROM || G.rocks.length) return;
@@ -136,7 +146,7 @@ function maybeCaveIn() {
   if (Math.random() >= p) return;
   let y = d.ty - 1; if (y < 0) return;
   const t = tile(d.tx, y);
-  if (t >= T_ORE || t === T_GAS) return;
+  if (t >= T_ORE || t === T_GAS || t === T_MAGMA) return;
   if (t !== T_EMPTY) setTile(d.tx, y, T_EMPTY);            // the ceiling breaks loose
   else { let n = 0; while (y - 1 >= 0 && tile(d.tx, y - 1) === T_EMPTY && n < CFG.CAVE_MAX_HEIGHT) { y--; n++; } }
   G.rocks.push({ x: d.tx, y, warn: CFG.CAVE_WARN });
@@ -150,11 +160,11 @@ function updateRocks(dt) {
     r.y += CFG.CAVE_FALL_SPEED * dt;
     if (Math.abs(d.x - r.x) < 0.5 && r.y >= d.y - 0.8 && r.y <= d.y + 0.5) {       // hit the drill
       const n = loseCargo(CFG.CAVE_CARGO_LOSS);
-      G.fuel = Math.max(0, G.fuel - CFG.CAVE_FUEL_LOSS);
+      const fl = Math.round(CFG.CAVE_FUEL_LOSS * hullMult()); G.fuel = Math.max(0, G.fuel - fl);
       shake(CFG.SHAKE_ROCK); flash('#ff3a2a', 0.5); sndExplosion();
       burst(r.x + 0.5, d.y, 40, '#8a8a92', 9, 1.0, 0.24);
       banner('CAVE-IN!', '#ff5a4a');
-      floatText((n ? '-' + n + ' CARGO  ' : '') + '-' + CFG.CAVE_FUEL_LOSS + ' FUEL', (r.x + 0.5) * TS, (d.y - G.camY) * TS, '#ff5a4a', 20 * U, 1.6);
+      floatText((n ? '-' + n + ' CARGO  ' : '') + '-' + fl + ' FUEL', (r.x + 0.5) * TS, (d.y - G.camY) * TS, '#ff5a4a', 20 * U, 1.6);
       G.rocks.splice(i, 1); continue;
     }
     const below = Math.ceil(r.y);

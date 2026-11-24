@@ -43,5 +43,7 @@ const GC = (() => {
     if (name === 'upgrade') GC.send('upgrade-' + d.k + '-' + d.lv);
     if (name === 'record') for (const m of DEPTH_MARKS) if (d.depth >= m && meta.depth < m) { meta.depth = m; GC.send('depth-' + m); store(); }
     if (name === 'waitlist') GC.send('waitlist-click');
+    if (name === 'contract') GC.send('contract-' + d.kind);
+    if (name === 'daily') GC.send('daily-streak-' + d.streak);
   });
 })();

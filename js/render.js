@@ -18,6 +18,11 @@ function drawTile(t, x, y, px, py) {
   if (t === T_ROCK) {
     ctx.fillStyle = '#7a7a84'; rr(px + TS * 0.06, py + TS * 0.06, TS * 0.88, TS * 0.88, TS * 0.22); ctx.fill();
     ctx.fillStyle = '#9a9aa6'; ctx.fillRect(px + TS * 0.22, py + TS * 0.2, TS * 0.3, TS * 0.14);
+  } else if (t === T_MAGMA) {
+    const glow = 0.55 + 0.45 * Math.sin(G.time * 3 + h * 12);
+    ctx.fillStyle = '#4a120a'; ctx.fillRect(px, py, s, s);
+    ctx.fillStyle = 'rgba(255,' + (90 + 60 * glow | 0) + ',20,' + (0.55 + 0.4 * glow) + ')';
+    ctx.beginPath(); ctx.arc(px + TS * (0.32 + h * 0.15), py + TS * 0.38, TS * 0.2, 0, 7); ctx.arc(px + TS * 0.66, py + TS * (0.62 - h * 0.1), TS * 0.16, 0, 7); ctx.fill();
   } else if (t === T_GAS) {
     ctx.fillStyle = 'rgba(150,255,90,' + (0.2 + 0.1 * Math.sin(G.time * 3 + h * 9)) + ')';
     ctx.beginPath(); ctx.arc(px + TS * (0.3 + h * 0.2), py + TS * 0.4, TS * 0.16, 0, 7); ctx.arc(px + TS * 0.68, py + TS * (0.5 + h * 0.2), TS * 0.11, 0, 7); ctx.fill();
@@ -101,7 +106,7 @@ function drawHUD() {
     const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.72);
     g.addColorStop(0, 'rgba(255,0,0,0)'); g.addColorStop(1, 'rgba(255,20,10,' + a + ')');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    if (blink) txt(G.outOfFuel ? 'OUT OF FUEL' : 'LOW FUEL - GO UP!', W / 2, 106 * U, 24 * U, '#ff4a3a', 'center', true);
+    if (blink) txt(G.outOfFuel ? 'OUT OF FUEL' : 'LOW FUEL - GO UP!', W / 2, 128 * U, 24 * U, '#ff4a3a', 'center', true);
   }
 }
 function drawShop() {
@@ -140,7 +145,7 @@ function draw() {
     ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.moveTo(cx - TS * 0.5, cy - TS * 0.3); ctx.lineTo(cx + TS * 0.5, cy - TS * 0.3); ctx.lineTo(cx, cy + TS * 0.4); ctx.fill();
   }
   ctx.restore();
-  drawShop(); drawHUD();
+  drawShop(); drawHUD(); drawContract();
   for (const f of G.floats) {
     const k = f.t / f.dur, pop = Math.min(1, f.t * 10);
     ctx.globalAlpha = k > 0.7 ? (1 - k) / 0.3 : 1;
@@ -162,4 +167,13 @@ function draw() {
     ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.arc(ptr.x, ptr.y, 20, 0, 7); ctx.fill();
   }
   if (G.flash) { ctx.globalAlpha = Math.max(0, G.flash.a); ctx.fillStyle = G.flash.color; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+}
+// the current contract: a strip under the HUD, visible everywhere
+function drawContract() {
+  const c = G.contract; if (!c) return;
+  const y = 84 * U, h = 24 * U;
+  ctx.fillStyle = c.done ? 'rgba(30,90,40,0.85)' : 'rgba(8,10,18,0.6)'; ctx.fillRect(0, y, W, h);
+  txt('CONTRACT', 10 * U, y + h / 2, 11 * U, '#8c93a3', 'left');
+  txt(c.done ? 'DONE!' : contractText(c), 82 * U, y + h / 2, 13 * U, '#fff', 'left');
+  txt('+$' + c.reward, W - 10 * U, y + h / 2, 14 * U, '#7dff8a', 'right');
 }

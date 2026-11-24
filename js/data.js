@@ -41,7 +41,9 @@ const CFG = {
   ROCK_HARDNESS: 3.0,        // fallen rock is this much slower to dig
 
   // ---- shop ----
-  UPGRADE_BASE: { speed: 140, cargo: 90, fuel: 110 },
+  UPGRADE_BASE: { speed: 140, cargo: 90, fuel: 110, hull: 220 },
+  HULL_PROTECT_PER_LEVEL: 0.2, // each hull level cuts cargo and fuel losses from hazards by 20%
+  HULL_PROTECT_MAX: 0.8,
   UPGRADE_GROWTH: 1.6,
   SHOP_PANEL_FRAC: 0.34,     // share of the screen height used by the shop panel
 
@@ -60,6 +62,27 @@ const CFG = {
   CAVE_MAX_HEIGHT: 8,        // rock starts at most this many tiles above
   CAVE_CARGO_LOSS: 0.25,
   CAVE_FUEL_LOSS: 10,
+
+  // ---- hazard: magma (deep) ----
+  MAGMA_FROM: 120,
+  MAGMA_CHANCE_START: 0.02,  // share of tiles that are magma at MAGMA_FROM
+  MAGMA_CHANCE_END: 0.08,
+  MAGMA_FUEL_LOSS: 15,
+  MAGMA_CARGO_LOSS: 0.3,
+
+  // ---- progression: contracts, depth bonuses, daily crate ----
+  DEPTH_BONUS_STEP: 25,      // first time at 25, 50, 75... m pays a bonus
+  DEPTH_BONUS_PER_M: 4,      // bonus = mark * this
+  CONTRACT_DELIVER_MIN: 3,
+  CONTRACT_DELIVER_MAX: 8,
+  CONTRACT_DELIVER_PAY: 0.8, // reward = ore value * amount * this + 30
+  CONTRACT_DEPTH_AHEAD: 15,  // depth contract = record + this
+  CONTRACT_DEPTH_PAY: 3,     // reward per m of the target
+  CONTRACT_FULL_PAY: 2.5,    // full-load contract: 50 + record * this
+  DAILY_BASE: 60,
+  DAILY_PER_STREAK: 40,      // extra per day of the streak
+  DAILY_PER_RECORD: 1.5,     // extra per m of the depth record
+  DAILY_STREAK_MAX: 7,
 
   // ---- juice ----
   RECORD_STEP: 10,           // "NEW DEPTH RECORD" every N tiles of new depth

@@ -7,7 +7,9 @@ const SAVE_EVERY = 5;   // seconds
 function b64(u8) { let s = ''; for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return btoa(s); }
 function unb64(s, u8) { const t = atob(s); for (let i = 0; i < t.length && i < u8.length; i++) u8[i] = t.charCodeAt(i); }
 
+let saveBlocked = false;   // set while resetting, so closing the page does not write the old game back
 function saveGame() {
+  if (saveBlocked) return;
   try {
     const d = G.drill, m = d.move;
     // mid-move: store where the drill is heading, the tile is cleared on load
@@ -16,6 +18,7 @@ function saveGame() {
       v: 1, t: Date.now(), world: b64(world),
       money: G.money, fuel: G.fuel, cargo: G.cargo, lv: G.lv,
       record: G.record, nextRecord: G.nextRecord, dug: G.dug, seenOre: G.seenOre, outOfFuel: G.outOfFuel,
+      contract: G.contract, daily: G.daily, depthBonus: G.depthBonus, sold: G.sold,
       tx, ty,
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -28,7 +31,9 @@ function loadGame() {
   if (!data || data.v !== 1) return false;
   unb64(data.world, world);
   Object.assign(G, {
-    money: data.money, moneyShown: data.money, fuel: data.fuel, cargo: data.cargo || [], lv: data.lv,
+    money: data.money, moneyShown: data.money, fuel: data.fuel, cargo: data.cargo || [], lv: Object.assign({}, G.lv, data.lv),
+    contract: data.contract || null, daily: data.daily || G.daily, depthBonus: data.depthBonus || Math.floor(data.record / CFG.DEPTH_BONUS_STEP) * CFG.DEPTH_BONUS_STEP,
+    sold: data.sold != null ? data.sold : data.money > 0,
     record: data.record, nextRecord: data.nextRecord, dug: data.dug, seenOre: data.seenOre || {}, outOfFuel: !!data.outOfFuel,
   });
   const d = G.drill; d.tx = d.x = data.tx; d.ty = d.y = data.ty; d.move = null;
@@ -37,7 +42,7 @@ function loadGame() {
   return true;
 }
 
-function resetGame() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} location.reload(); }
+function resetGame() { saveBlocked = true; try { localStorage.removeItem(SAVE_KEY); } catch (e) {} location.reload(); }
 
 onEvent(name => { if (name === 'sell' || name === 'upgrade' || name === 'surface') saveGame(); });
 let saveAcc = 0;
