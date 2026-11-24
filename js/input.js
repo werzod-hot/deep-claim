@@ -6,6 +6,7 @@ const keys = {};
 function evPos(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 cv.addEventListener('pointerdown', e => {
   audioInit(); const p = evPos(e);
+  if (inRect(muteRect(), p.x, p.y)) { toggleMute(); e.preventDefault(); return; }
   ptr = { sx: p.x, sy: p.y, x: p.x, y: p.y, moved: false };
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
   e.preventDefault();
@@ -19,7 +20,7 @@ cv.addEventListener('pointermove', e => {
 function pointerEnd(e) { if (!ptr) return; if (!ptr.moved) tap(ptr.x, ptr.y); ptr = null; }
 cv.addEventListener('pointerup', pointerEnd);
 cv.addEventListener('pointercancel', () => { ptr = null; });
-window.addEventListener('keydown', e => { keys[e.key] = true; audioInit(); });
+window.addEventListener('keydown', e => { keys[e.key] = true; audioInit(); if (e.key === 'm' || e.key === 'M') toggleMute(); });
 window.addEventListener('keyup', e => { keys[e.key] = false; });
 document.addEventListener('contextmenu', e => e.preventDefault());
 

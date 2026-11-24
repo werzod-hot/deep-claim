@@ -14,7 +14,9 @@ function flash(color, a) { G.flash = { color, a: a || 0.6 }; }
 function shake(v) { G.shake = Math.max(G.shake, v * U); }
 function after(t, fn) { G.timers.push({ t, fn }); }
 const dirtRGB = (y, h) => {
-  const k = Math.max(0, y) / ROWS, m = 0.88 + 0.24 * h;
-  return [Math.round(lerp(142, 52, k) * m), Math.round(lerp(96, 40, k) * m), Math.round(lerp(60, 78, k) * m)];
+  let b = CFG.BANDS[0];
+  for (const x of CFG.BANDS) if (y >= x.from) b = x;
+  const n = parseInt(b.base.slice(1), 16), m = 0.85 + 0.3 * h;
+  return [Math.min(255, (n >> 16) * m | 0), Math.min(255, ((n >> 8) & 255) * m | 0), Math.min(255, (n & 255) * m | 0)];
 };
 const dirtColor = (y, h) => { const c = dirtRGB(y, h); return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; };

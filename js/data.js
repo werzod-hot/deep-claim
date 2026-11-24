@@ -12,11 +12,11 @@ const CFG = {
 
   // ---- ores: depth range (tiles), value per unit, vein count and vein size ----
   ORES: [
-    { name: 'Coal',    min: 5,   max: 40,  value: 5,   color: '#1d1d24', shine: '#7d7d90', veins: 16, veinSize: [3, 6] },
-    { name: 'Copper',  min: 20,  max: 80,  value: 15,  color: '#e2793a', shine: '#ffc08a', veins: 20, veinSize: [3, 6] },
-    { name: 'Silver',  min: 60,  max: 120, value: 40,  color: '#d5dde8', shine: '#ffffff', veins: 18, veinSize: [3, 5] },
-    { name: 'Gold',    min: 100, max: 170, value: 100, color: '#ffcf1f', shine: '#fff6b0', veins: 18, veinSize: [3, 5] },
-    { name: 'Crystal', min: 150, max: 200, value: 300, color: '#55efff', shine: '#ffffff', veins: 12, veinSize: [2, 4] },
+    { name: 'Coal',    min: 5,   max: 40,  value: 5,   color: '#1d1d24', shine: '#7d7d90', glint: '#9a9ab8', veins: 16, veinSize: [3, 6] },
+    { name: 'Copper',  min: 20,  max: 80,  value: 15,  color: '#e2793a', shine: '#ffc08a', glint: '#e2793a', veins: 20, veinSize: [3, 6] },
+    { name: 'Silver',  min: 60,  max: 120, value: 40,  color: '#d5dde8', shine: '#ffffff', glint: '#d5dde8', veins: 18, veinSize: [3, 5] },
+    { name: 'Gold',    min: 100, max: 170, value: 100, color: '#ffcf1f', shine: '#fff6b0', glint: '#ffcf1f', veins: 18, veinSize: [3, 5] },
+    { name: 'Crystal', min: 150, max: 200, value: 300, color: '#55efff', shine: '#ffffff', glint: '#55efff', veins: 12, veinSize: [2, 4] },
   ],
 
   // ---- cargo ----
@@ -103,4 +103,43 @@ const CFG = {
 
   // ---- sound ----
   VOLUME: 0.5,
+  SND: {
+    DIG_VOL: 0.35, DIG_F_TOP: 1500, DIG_F_BOTTOM: 420,      // crunch filter: high near the top, low deep down
+    DIG_THUD_TOP: 190, DIG_THUD_BOTTOM: 70,
+    ORE_VOL: 0.2, ORE_BASE: 660, ORE_OCTAVES: 1.6,          // chime pitch rises with ore value over this many octaves
+    UP_VOL: 0.15,
+    BEEP_VOL: 0.16, BEEP_FREQ: 880, BEEP_EVERY: 1.0,        // low fuel
+    DRONE_VOL: 0.1, DRONE_F_TOP: 72, DRONE_F_BOTTOM: 36, DRONE_FADE_DEPTH: 6,
+  },
+  MUTE_KEY: 'deepclaim.mute',
+
+  // ---- art: depth bands (from = depth in tiles). Palette: base, hi (top bevel), lo (bottom bevel), dark/light speckles ----
+  BAND_BLEND: 3,             // tiles over which neighbouring bands blend
+  BACK_DARK: 0.30,           // brightness of the dug-tunnel back wall relative to the band colour
+  SHADOW_FRAC: 0.30, SHADOW_A: 0.55,   // soft inner shadow of tunnel edges
+  BANDS: [
+    { name: 'Topsoil', from: 0,   style: 'pebbles',    base: '#a0713f', hi: '#c0905a', lo: '#69462a', dark: '#74502e', light: '#cfa672' },
+    { name: 'Clay',    from: 20,  style: 'streaks',    base: '#9a4a35', hi: '#b8664f', lo: '#64301f', dark: '#78372a', light: '#c97c60' },
+    { name: 'Stone',   from: 60,  style: 'cracks',     base: '#5f6b7e', hi: '#7f8da2', lo: '#3a4352', dark: '#465063', light: '#94a2b6' },
+    { name: 'Basalt',  from: 120, style: 'glowcracks', base: '#3f3a4c', hi: '#585270', lo: '#221e2c', dark: '#2b2736', light: '#686080', crack: '#ff7a30' },
+    { name: 'Crystal', from: 150, style: 'crystal',    base: '#17171f', hi: '#2a2a3a', lo: '#0a0a10', dark: '#0e0e15', light: '#30313f', speck: '#4fe6ff' },
+  ],
+
+  // ---- art: light below LIGHT_FROM (radius in tiles) ----
+  LIGHT_FROM: 15,
+  LIGHT_RADIUS_TOP: 7,
+  LIGHT_RADIUS_BOTTOM: 3.5,
+  LIGHT_RAMP: 5,             // tiles over which the darkness fades in
+  LIGHT_DARK: 0.94,          // darkness alpha outside the light
+  LIGHT_TINT: '4,6,14',
+  GLINT_ORE: 0.7, GLINT_GAS: 0.25, GLINT_MAGMA: 0.3, GLINT_TUNNEL: 0.10,
+
+  // ---- art: surface ----
+  SKY: ['#2c68b0', '#79bde6', '#ffdfa6'],
+  HILL_FAR: '#6e9f8c', HILL_NEAR: '#4f8a4a', GRASS: '#58b040', GRASS_DARK: '#3a7a2c',
+  CLOUD_COLOR: 'rgba(255,255,255,0.86)',
+
+  // ---- art: drill ----
+  DRILL_BODY: '#ffb21f', DRILL_BODY_OFF: '#8a8f99', DRILL_OUTLINE: '#7a4a00', DRILL_OUTLINE_OFF: '#4d5159',
+  DRILL_GLASS: '#2b4a6e', DRILL_TREAD: '#2a2d36',
 };

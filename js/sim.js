@@ -44,7 +44,7 @@ function buyUpgrade(k, r) {
   flash('#ffffff', 0.75); shake(CFG.SHAKE_SELL);
   banner(UP_NAMES[k] + '  LV ' + (G.lv[k] + 1), '#8fe9ff');
   burst(G.drill.x + 0.5, G.drill.y + 0.5, 50, '#8fe9ff', 9, 1.1, 0.2);
-  sndSell(1.5);
+  sndUpgrade();
 }
 
 /* ---------------- drill logic ---------------- */
@@ -71,7 +71,7 @@ function tryStartMove() {
       if (n) floatText('-' + n + ' CARGO', (d.x + 0.5) * TS, (d.y - G.camY) * TS, '#ff5a4a', 24 * U, 1.6); }
   }
   d.move = { fx: d.tx, fy: d.ty, tx: nx, ty: ny, t: 0, dur, dig: solid, type: t };
-  if (solid) sndDig(t >= T_ORE);
+  if (solid) sndDig(t >= T_ORE, ny, t);
 }
 function finishMove(m) {
   const d = G.drill, wasBelow = m.fy >= 0;
