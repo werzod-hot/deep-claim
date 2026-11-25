@@ -11,11 +11,14 @@ const GC = (() => {
   const queue = [];
   function send(path, title) {
     if (!GC_CODE) return;
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) path = 'app-' + path;
     if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path, title: title || path, event: true });
     else queue.push([path, title]);
   }
   if (GC_CODE) {
-    window.goatcounter = { no_onload: false };
+    // inside the Android app (Capacitor) the page runs on "localhost": count it anyway, under paths starting with "app/"
+    const app = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    window.goatcounter = app ? { no_onload: false, allow_local: true, path: p => 'app' + p } : { no_onload: false };
     const s = document.createElement('script');
     s.async = true; s.src = 'https://gc.zgo.at/count.js';
     s.dataset.goatcounter = 'https://' + GC_CODE + '.goatcounter.com/count';
@@ -46,6 +49,7 @@ const GC = (() => {
     if (name === 'sell' && !meta.sold) { meta.sold = true; GC.send('first-sale'); store(); }
     if (name === 'upgrade') GC.send('upgrade-' + d.k + '-' + d.lv);
     if (name === 'record') for (const m of DEPTH_MARKS) if (d.depth >= m && meta.depth < m) { meta.depth = m; GC.send('depth-' + m); store(); }
+    if (name === 'fast-climb' && !adSeen._ff) { adSeen._ff = 1; GC.send('fast-climb'); }   // once per session: do players use it
     if (name === 'waitlist') GC.send('waitlist-click');
     if (name === 'contract') GC.send('contract-' + d.kind);
     if (name === 'daily') GC.send('daily-streak-' + d.streak);

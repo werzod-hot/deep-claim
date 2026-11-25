@@ -107,6 +107,48 @@ function drawWorld() {
   if (r1 >= ROWS - 1) { ctx.fillStyle = '#05050a'; ctx.fillRect(0, (ROWS - cam) * TS, W, H); }
 }
 // darkness below LIGHT_FROM: one radial gradient around the drill, plus faint glints for ore / gas / magma / tunnels
+// first-time control hint: a ghost finger presses, slides down, and a ring shows the hidden joystick
+function drawControlHint() {
+  const k = (G.time % 2.2) / 2.2, x = W / 2, y0 = H * 0.56, down = Math.min(1, Math.max(0, (k - 0.2) / 0.45)) * 46 * U;
+  const a = k < 0.1 ? k / 0.1 : k > 0.85 ? (1 - k) / 0.15 : 1;
+  ctx.save(); ctx.globalAlpha = 0.85 * a;
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 2 * U; ctx.beginPath(); ctx.arc(x, y0, CFG.JOY_RADIUS, 0, 7); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(x, y0 + down, 17 * U, 0, 7); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.stroke();
+  ctx.restore();
+  const ty = y0 - CFG.JOY_RADIUS - 22 * U;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; rr(x - 150 * U, ty - 26 * U, 300 * U, 50 * U, 12 * U); ctx.fill();
+  txt('HOLD & SLIDE ANYWHERE', x, ty - 8 * U, 20 * U, '#ffffff', 'center', true);
+  txt('to drive the drill', x, ty + 12 * U, 15 * U, '#ffe14a', 'center', true);
+}
+// fast climb: the button while a dug path leads up, and a fast-forward look while it runs
+function drawFastClimb() {
+  if (G.ff) {
+    const k = G.ff.t / G.ff.dur, a = Math.sin(Math.PI * Math.min(1, k)) ;
+    ctx.fillStyle = 'rgba(70,140,255,' + (0.16 * a) + ')'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,' + (0.10 * a) + ')';
+    const off = (G.time * 900) % (14 * U);
+    for (let y = H + off; y > 0; y -= 14 * U) ctx.fillRect(0, y, W, 2 * U);        // scanlines rushing down
+    ctx.globalAlpha = a;
+    const bx = W / 2, by = H * 0.24, s = 22 * U;
+    for (let j = 0; j < 2; j++) {                                                    // two big up-arrows
+      const y = by + j * s * 1.1 - ((G.time * 6) % 1) * s * 0.3;
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(bx - s, y + s * 0.6); ctx.lineTo(bx, y - s * 0.4); ctx.lineTo(bx + s, y + s * 0.6); ctx.fill();
+    }
+    txt('FAST CLIMB', bx, by + s * 2.7, 22 * U, '#bfe3ff', 'center', true);
+    ctx.globalAlpha = 1;
+    G.ffShown = false; return;
+  }
+  G.ffShown = !!ffAvailable();
+  if (!G.ffShown) return;
+  const r = ffRect(), p = 0.5 + 0.5 * Math.sin(G.time * 3);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; rr(r.x + 2 * U, r.y + 4 * U, r.w, r.h, r.h / 2); ctx.fill();
+  ctx.fillStyle = 'rgb(' + Math.round(70 + 30 * p) + ',150,255)'; rr(r.x, r.y, r.w, r.h, r.h / 2); ctx.fill();
+  const ax = r.x + 26 * U, ay = r.y + r.h / 2, s = 8 * U;
+  ctx.fillStyle = '#ffffff';
+  for (let j = 0; j < 2; j++) { const y = ay - 3 * U + j * 7 * U; ctx.beginPath(); ctx.moveTo(ax - s, y + s * 0.5); ctx.lineTo(ax, y - s * 0.5); ctx.lineTo(ax + s, y + s * 0.5); ctx.fill(); }
+  txt('FAST CLIMB', r.x + r.w / 2 + 12 * U, ay, 18 * U, '#ffffff', 'center', true);
+}
 function drawDarkness() {
   const d = G.drill, depth = d.y + 1, amt = Math.max(0, Math.min(1, (depth - CFG.LIGHT_FROM) / CFG.LIGHT_RAMP));
   if (amt <= 0) return;
@@ -208,6 +250,27 @@ function drawDrill() {
   ctx.restore();
 }
 function muteRect() { const s = 28 * U; return { x: W - 10 * U - s, y: 112 * U, w: s, h: s }; }
+// music on/off, left of the mute icon
+function musicRect() { const m = muteRect(); return { x: m.x - m.w - 8 * U, y: m.y, w: m.w, h: m.h }; }
+function drawMusic() {
+  const r = musicRect(), cx = r.x + r.w / 2, cy = r.y + r.h / 2, u = r.w / 28;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; rr(r.x, r.y, r.w, r.h, 6 * U); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2 * u;
+  ctx.beginPath(); ctx.ellipse(cx - 4 * u, cy + 6 * u, 4 * u, 3 * u, -0.4, 0, 7); ctx.fill();          // note head
+  ctx.beginPath(); ctx.moveTo(cx - 0.5 * u, cy + 5 * u); ctx.lineTo(cx - 0.5 * u, cy - 9 * u); ctx.lineTo(cx + 7 * u, cy - 6 * u); ctx.stroke();
+  if (!musicOn) { ctx.strokeStyle = '#ff6a5a'; ctx.lineWidth = 2.4 * u; ctx.beginPath(); ctx.moveTo(cx - 10 * u, cy - 10 * u); ctx.lineTo(cx + 10 * u, cy + 10 * u); ctx.stroke(); }
+}
+// start-over button under the mute icon, only at the surface (two confirmations before the wipe)
+function wipeRect() { const s = 28 * U, m = muteRect(); return { x: m.x, y: m.y + m.h + 10 * U, w: s, h: s }; }
+function drawWipe() {
+  if (!atSurface()) return;
+  const r = wipeRect(), cx = r.x + r.w / 2, cy = r.y + r.h / 2, u = r.w / 28;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; rr(r.x, r.y, r.w, r.h, 6 * U); ctx.fill();
+  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.2 * u; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(cx, cy, 7.5 * u, -Math.PI * 0.35, Math.PI * 1.45); ctx.stroke();
+  ctx.fillStyle = '#ffffff'; ctx.beginPath();                       // arrow head of the circular arrow
+  ctx.moveTo(cx + 8.5 * u, cy - 9.5 * u); ctx.lineTo(cx + 9.5 * u, cy - 2 * u); ctx.lineTo(cx + 2.5 * u, cy - 4.5 * u); ctx.fill();
+}
 function drawMute() {
   const r = muteRect(), cx = r.x + r.w / 2, cy = r.y + r.h / 2, u = r.w / 28;
   ctx.fillStyle = 'rgba(8,10,18,0.55)'; rr(r.x, r.y, r.w, r.h, 7 * u); ctx.fill();
@@ -270,12 +333,13 @@ function draw() {
   }
   ctx.globalAlpha = 1;
   // start hint: a bouncing arrow under the drill until the first dig
-  if (G.dug === 0 && !G.drill.move) {
+  if (G.dug < CFG.HINT_DIGS && !G.drill.move && !ptr) drawControlHint();
+  if (G.dug === 0 && !G.drill.move && ptr) {   // arrow only while the finger is down; before that the control hint explains it
     const cx = (G.drill.x + 0.5) * TS, cy = (G.drill.y + 1.9 - G.camY) * TS + Math.sin(G.time * 6) * TS * 0.25;
     ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.moveTo(cx - TS * 0.5, cy - TS * 0.3); ctx.lineTo(cx + TS * 0.5, cy - TS * 0.3); ctx.lineTo(cx, cy + TS * 0.4); ctx.fill();
   }
   ctx.restore();
-  drawShop(); drawHUD(); drawContract(); drawMute(); audioTick();
+  drawShop(); drawHUD(); drawContract(); drawMute(); drawMusic(); drawWipe(); drawFastClimb(); audioTick();
   for (const f of G.floats) {
     const k = f.t / f.dur, pop = Math.min(1, f.t * 10);
     ctx.globalAlpha = k > 0.7 ? (1 - k) / 0.3 : 1;
@@ -287,7 +351,7 @@ function draw() {
     let size = 30 * U; ctx.font = '800 ' + size + 'px system-ui,sans-serif';
     ctx.save(); ctx.translate(W / 2, 176 * U); ctx.scale(s, s);
     ctx.font = '800 ' + Math.round(size) + 'px system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif';
-    const tw = ctx.measureText(b.text).width; if (tw > W * 0.86) size *= W * 0.86 / tw;
+    const tw = ctx.measureText(b.text).width * s; if (tw > W * 0.86) size *= W * 0.86 / tw;   // fits even while it pops in
     ctx.fillStyle = 'rgba(0,0,0,0.55)'; rr(-W * 0.48, -size * 0.85, W * 0.96, size * 1.7, 10 * U); ctx.fill();
     txt(b.text, 0, 1, size, b.color, 'center', true);
     ctx.restore();

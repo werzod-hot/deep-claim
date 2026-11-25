@@ -27,17 +27,39 @@ const world = new Uint8Array(COLS * ROWS);
 const tile = (x, y) => (y < 0 ? T_EMPTY : world[y * COLS + x]);
 const setTile = (x, y, t) => { if (y >= 0 && y < ROWS && x >= 0 && x < COLS) world[y * COLS + x] = t; };
 
+// random-walk vein inside rows [ya, yb] and columns [xa, xb]; places up to n tiles (at most `room`) of ore index i, returns how many
+function walkVein(i, x, y, n, room, ya, yb, xa, xb, cnt) {
+  let placed = 0;
+  for (let k = 0; k < 40 && placed < n && placed < room; k++) {
+    if (world[y * COLS + x] === T_DIRT) { world[y * COLS + x] = T_ORE + i; placed++; if (cnt) cnt[(y / CFG.ORE_QUOTA_SLICE) | 0]++; }
+    if (Math.random() < 0.5) x += Math.random() < 0.5 ? -1 : 1; else y += Math.random() < 0.5 ? -1 : 1;
+    x = Math.max(xa, Math.min(xb, x)); y = Math.max(ya, Math.min(yb, y));
+  }
+  return placed;
+}
+
 function generate() {
   world.fill(T_DIRT);
+  const S = CFG.ORE_QUOTA_SLICE, nS = Math.ceil(ROWS / S);
   CFG.ORES.forEach((o, i) => {
-    const y0 = o.min - 1, y1 = Math.min(o.max, ROWS) - 1;
-    for (let v = 0; v < o.veins; v++) {
-      let x = rint(0, COLS - 1), y = rint(y0, y1);
-      const n = rint(o.veinSize[0], o.veinSize[1]);
-      for (let k = 0, placed = 0; k < 40 && placed < n; k++) {
-        if (y >= y0 && y <= y1 && world[y * COLS + x] === T_DIRT) { world[y * COLS + x] = T_ORE + i; placed++; }
-        if (Math.random() < 0.5) x += Math.random() < 0.5 ? -1 : 1; else y += Math.random() < 0.5 ? -1 : 1;
-        x = Math.max(0, Math.min(COLS - 1, x));
+    const y0 = o.min - 1, y1 = Math.min(o.max, ROWS) - 1, q = CFG.ORE_QUOTA[i], cnt = new Array(nS).fill(0);
+    if (i === 0) {                                   // guaranteed starter coal: veins close to the shaft, in the first rows
+      const cx = Math.floor(COLS / 2), xa = Math.max(0, cx - CFG.START_COAL_COLS), xb = Math.min(COLS - 1, cx + CFG.START_COAL_COLS);
+      const yTop = y0, yBot = Math.min(y1, CFG.START_COAL_ROWS - 1), mid = (yTop + yBot) >> 1;
+      for (let v = 0; v < CFG.START_COAL_VEINS; v++) {   // one vein per half of the strip, so they are not the same cluster
+        const ya = v % 2 ? mid + 1 : yTop, yb = v % 2 ? yBot : mid;
+        walkVein(i, rint(xa, xb), rint(ya, yb), rint(Math.max(3, o.veinSize[0]), Math.max(4, o.veinSize[1])), 99, ya, yb, xa, xb, cnt);
+      }
+    }
+    for (let s = Math.floor(y0 / S); s * S <= y1; s++) {
+      const ya = Math.max(y0, s * S), yb = Math.min(y1, s * S + S - 1);
+      const frac = (yb - ya + 1) / S;
+      const mid = (ya + yb) / 2, edge = Math.min(mid - y0, y1 - mid);
+      const f = lerp(CFG.ORE_QUOTA_EDGE, 1, edge / CFG.ORE_QUOTA_EDGE_ROWS) * frac;
+      const mn = Math.max(1, Math.round(q.min * f)), mx = Math.max(mn, Math.round(q.max * f));
+      const target = Math.max(cnt[s], rint(mn, mx));
+      for (let tries = 0; cnt[s] < target && tries < 80; tries++) {
+        walkVein(i, rint(0, COLS - 1), rint(ya, yb), rint(o.veinSize[0], o.veinSize[1]), Math.max(mx, cnt[s]) - cnt[s], ya, yb, 0, COLS - 1, cnt);
       }
     }
   });

@@ -11,6 +11,7 @@ function shopRects() {
 }
 const inRect = (r, x, y) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
 function tap(x, y) {
+  if (G.ffShown && inRect(ffRect(), x, y)) return ffStart();   // a tap (not a slide) on FAST CLIMB
   if (!atSurface()) return;
   const s = shopRects();
   if (inRect(s.sell, x, y)) return sellCargo();
@@ -63,7 +64,14 @@ function tryStartMove() {
   let dur;
   if (out) dur = CFG.CRAWL_TIME;
   else if (solid) dur = CFG.DIG_TIME * hardness(ny, t) / speedMult();
-  else dur = CFG.MOVE_TIME / speedMult();
+  else {
+    // tunnels: the first tile is slow so you can stop exactly where you want, holding the direction speeds up
+    const chained = d.run && d.run.dx === dir.x && d.run.dy === dir.y && G.time - d.run.end < 0.06;
+    const n = chained ? d.run.n + 1 : 0;
+    d.run = { dx: dir.x, dy: dir.y, n, end: Infinity };
+    dur = Math.max(CFG.MOVE_TIME_MIN, CFG.MOVE_TIME * Math.pow(CFG.MOVE_RAMP, n)) / Math.sqrt(speedMult());
+  }
+  if (solid) d.run = null;
   if (!out && (ny >= 0 || d.ty >= 0)) {
     G.fuel = Math.max(0, G.fuel - (solid ? CFG.FUEL_PER_DIG : CFG.FUEL_PER_MOVE));
     if (G.fuel <= 0 && ny >= 0 && !G.outOfFuel) { G.outOfFuel = true; banner('OUT OF FUEL - CRAWLING UP', '#ff5a4a'); shake(8);
@@ -76,6 +84,7 @@ function tryStartMove() {
 function finishMove(m) {
   const d = G.drill, wasBelow = m.fy >= 0;
   d.tx = m.tx; d.ty = m.ty; d.x = m.tx; d.y = m.ty; d.move = null;
+  if (d.run) d.run.end = G.time;
   if (m.ty >= 0) setTile(m.tx, m.ty, T_EMPTY);
   if (m.dig) {
     G.dug++;
@@ -190,7 +199,8 @@ function arriveSurface() {
 function update(dt) {
   G.time += dt;
   const d = G.drill;
-  if (d.move) {
+  if (G.ff) ffUpdate(dt);                 // fast climb (ff.js) replaces normal movement while it runs
+  else if (d.move) {
     const m = d.move; m.t += dt;
     const k = Math.min(1, m.t / m.dur);
     d.x = m.fx + (m.tx - m.fx) * k; d.y = m.fy + (m.ty - m.fy) * k;
@@ -207,8 +217,8 @@ function update(dt) {
     }
     if (k >= 1) finishMove(m);
   }
-  if (!d.move) tryStartMove();
-  updateRocks(dt);
+  if (!d.move && !G.ff) tryStartMove();
+  if (!G.ff) updateRocks(dt);
 
   for (let i = G.timers.length - 1; i >= 0; i--) { const t = G.timers[i]; t.t -= dt; if (t.t <= 0) { G.timers.splice(i, 1); t.fn(); } }
   for (let i = G.particles.length - 1; i >= 0; i--) {

@@ -7,6 +7,13 @@ function evPos(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX 
 cv.addEventListener('pointerdown', e => {
   audioInit(); const p = evPos(e);
   if (inRect(muteRect(), p.x, p.y)) { toggleMute(); e.preventDefault(); return; }
+  if (inRect(musicRect(), p.x, p.y)) { toggleMusic(); e.preventDefault(); return; }
+  if (atSurface() && inRect(wipeRect(), p.x, p.y)) {
+    e.preventDefault();
+    if (confirm('Start over? ' + 'This deletes ALL your progress: money, upgrades and the dug mine.') &&
+        confirm('Are you sure? This cannot be undone.')) resetGame();
+    return;
+  }
   ptr = { sx: p.x, sy: p.y, x: p.x, y: p.y, moved: false };
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
   e.preventDefault();

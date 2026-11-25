@@ -48,7 +48,7 @@ function adsTick(dt) {
 
 onEvent((name, d) => {
   if (name === 'sell' && d.total > 0) adOffer('double', { n: d.total });
-  if (name === 'daily') adOffer('crate', { n: d.reward });
+  if (name === 'daily' && G.sold) adOffer('crate', { n: d.reward });   // no ad offer before the very first sale: a new player should learn to dig first
   if (name === 'cargo-lost') adOffer('cargo', { items: d.items });
   if (name === 'surface') { AD.refuelDone = false; if (AD.offer && AD.offer.placement === 'refuel') AD.offer = null; }
 });
